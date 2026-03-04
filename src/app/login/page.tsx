@@ -19,9 +19,12 @@ export default function AdminLoginPage() {
         setLoading(true);
 
         try {
-            const data = await api.post("/auth/login", { email, password });
+            const data: any = await api.post("/auth/login", { email, password });
 
-            if (!["super_admin", "ops_admin", "finance_admin"].includes(data.role)) {
+            // The backend returns only { access_token, refresh_token }. Decode role from the JWT.
+            const payload = JSON.parse(atob(data.access_token.split(".")[1]));
+
+            if (!["super_admin", "ops_admin", "finance_admin"].includes(payload.role)) {
                 throw new Error("Unauthorized access. Admin privileges required.");
             }
 
