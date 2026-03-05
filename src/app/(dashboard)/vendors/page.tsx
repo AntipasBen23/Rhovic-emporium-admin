@@ -16,21 +16,37 @@ export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    async function load() {
+        try {
+            const token = localStorage.getItem("admin_token");
+            const { items } = await api.get("/admin/vendors?limit=100", token || "");
+            setVendors(items || []);
+        } catch (err: any) {
+            setError(err.message || "Failed to load vendors");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     useEffect(() => {
-        async function load() {
-            try {
-                const token = localStorage.getItem("admin_token");
-                const { items } = await api.get("/admin/vendors?limit=100", token || "");
-                setVendors(items || []);
-            } catch (err: any) {
-                setError(err.message || "Failed to load vendors");
-            } finally {
-                setLoading(false);
-            }
-        }
         load();
     }, []);
+
+    async function handleAction(id: string, action: "approve" | "reject") {
+        try {
+            setError("");
+            setActionLoading(id + ":" + action);
+            const token = localStorage.getItem("admin_token");
+            await api.patch(`/admin/vendors/${id}/${action}`, {}, token || "");
+            await load();
+        } catch (err: any) {
+            setError(err.message || `Failed to ${action} vendor`);
+        } finally {
+            setActionLoading(null);
+        }
+    }
 
     if (loading) return <div className="animate-pulse bg-gray-200 h-96 w-full flex rounded-2xl" />;
 
@@ -54,6 +70,7 @@ export default function VendorsPage() {
                             <th className="px-6 py-4">Owner Name</th>
                             <th className="px-6 py-4">Status</th>
                             <th className="px-6 py-4">Join Date</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
@@ -73,11 +90,37 @@ export default function VendorsPage() {
                                 <td className="px-6 py-4 text-gray-500">
                                     {new Date(v.CreatedAt).toLocaleDateString()}
                                 </td>
+                                <td className="px-6 py-4 text-right">
+                                    {v.Status === "pending" ? (
+                                        <div className="flex justify-end gap-2">
+                                            {actionLoading === `${v.ID}:approve` || actionLoading === `${v.ID}:reject` ? (
+                                                <span className="text-xs font-bold text-gray-500">Processing...</span>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleAction(v.ID, "reject")}
+                                                        className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAction(v.ID, "approve")}
+                                                        className="text-xs font-bold text-white bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs font-bold text-gray-400">No actions</span>
+                                    )}
+                                </td>
                             </tr>
                         ))}
                         {vendors.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-gray-500">
+                                <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-gray-500">
                                     No vendors registered yet.
                                 </td>
                             </tr>
