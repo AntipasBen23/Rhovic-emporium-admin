@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 type Payout = {
-    ID: string;
-    VendorID: string;
-    Amount: number; // kobo
-    Status: string;
-    CreatedAt: string;
+    id: string;
+    vendor_id: string;
+    vendor_name: string;
+    order_id: string;
+    vendor_order_id: string;
+    gross_amount: number;
+    commission_amount: number;
+    net_amount: number;
+    status: string;
+    paid_at?: string | null;
+    reference?: string;
+    created_at: string;
 };
 
 export default function PayoutsPage() {
@@ -20,7 +27,7 @@ export default function PayoutsPage() {
     const load = async () => {
         try {
             const token = localStorage.getItem("admin_token");
-            const { items } = await api.get("/admin/payouts?limit=100", token || "");
+            const { items } = await api.get("/admin/vendor-payouts?limit=100", token || "");
             setPayouts(items || []);
         } catch (err: any) {
             setError(err.message || "Failed to load payouts");
@@ -33,22 +40,22 @@ export default function PayoutsPage() {
         load();
     }, []);
 
-    const handleAction = async (id: string, action: "approve" | "reject") => {
+    const handleMarkPaid = async (id: string) => {
         try {
             setError("");
             setActionLoading(id);
             const token = localStorage.getItem("admin_token");
-            await api.patch(`/admin/payouts/${id}/${action}`, action === "reject" ? { reason: "Admin rejected" } : {}, token || "");
+            await api.post(`/admin/vendor-payouts/${id}/mark-paid`, { reference: `PAYOUT-${Date.now()}` }, token || "");
             await load(); // Reload list
         } catch (err: any) {
-            setError(err.message || `Failed to ${action} payout`);
+            setError(err.message || "Failed to mark payout as paid");
         } finally {
             setActionLoading(null);
         }
     };
 
-    const formatCurrency = (kobo: number) => {
-        return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(kobo / 100);
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
     };
 
     if (loading) return <div className="animate-pulse bg-gray-200 h-96 w-full flex rounded-2xl" />;
@@ -69,8 +76,10 @@ export default function PayoutsPage() {
                     <thead className="bg-black/5 text-xs font-black uppercase tracking-widest text-gray-500">
                         <tr>
                             <th className="px-6 py-4">Payout ID</th>
-                            <th className="px-6 py-4">Vendor ID</th>
-                            <th className="px-6 py-4">Amount</th>
+                            <th className="px-6 py-4">Vendor</th>
+                            <th className="px-6 py-4">Gross</th>
+                            <th className="px-6 py-4">Commission</th>
+                            <th className="px-6 py-4">Net</th>
                             <th className="px-6 py-4">Status</th>
                             <th className="px-6 py-4">Request Date</th>
                             <th className="px-6 py-4 text-right">Actions</th>
@@ -78,35 +87,36 @@ export default function PayoutsPage() {
                     </thead>
                     <tbody className="divide-y divide-black/5">
                         {payouts.map((p) => (
-                            <tr key={p.ID} className="transition-colors hover:bg-black/5">
-                                <td className="px-6 py-4 font-mono text-xs text-gray-500">{p.ID.substring(0, 12)}...</td>
-                                <td className="px-6 py-4 font-mono text-xs text-gray-500">{p.VendorID.substring(0, 8)}...</td>
-                                <td className="px-6 py-4 font-black tracking-tight text-gray-900">{formatCurrency(p.Amount)}</td>
+                            <tr key={p.id} className="transition-colors hover:bg-black/5">
+                                <td className="px-6 py-4 font-mono text-xs text-gray-500">{p.id.substring(0, 12)}...</td>
+                                <td className="px-6 py-4 text-xs text-gray-700">{p.vendor_name || p.vendor_id}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(p.gross_amount)}</td>
+                                <td className="px-6 py-4 font-bold text-gray-700">{formatCurrency(p.commission_amount)}</td>
+                                <td className="px-6 py-4 font-black tracking-tight text-gray-900">{formatCurrency(p.net_amount)}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${p.Status === "approved" ? "bg-green-100 text-green-800" :
-                                            p.Status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                                                "bg-red-100 text-red-800"
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${p.status === "paid" ? "bg-green-100 text-green-800" :
+                                            p.status === "queued" ? "bg-yellow-100 text-yellow-800" :
+                                                "bg-gray-100 text-gray-800"
                                         }`}>
-                                        {p.Status}
+                                        {p.status}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-500">
-                                    {new Date(p.CreatedAt).toLocaleDateString()}
+                                    {new Date(p.created_at).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    {p.Status === "pending" && (
+                                    {p.status !== "paid" && (
                                         <div className="flex justify-end gap-2">
-                                            {actionLoading === p.ID ? (
+                                            {actionLoading === p.id ? (
                                                 <span className="text-xs font-bold text-gray-500">Processing...</span>
                                             ) : (
                                                 <>
-                                                    <button onClick={() => handleAction(p.ID, "reject")} className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">Reject</button>
-                                                    <button onClick={() => handleAction(p.ID, "approve")} className="text-xs font-bold text-white bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg">Approve</button>
+                                                    <button onClick={() => handleMarkPaid(p.id)} className="text-xs font-bold text-white bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg">Mark paid</button>
                                                 </>
                                             )}
                                         </div>
                                     )}
-                                    {p.Status !== "pending" && (
+                                    {p.status === "paid" && (
                                         <span className="text-xs font-bold text-gray-400">No actions available</span>
                                     )}
                                 </td>
@@ -114,7 +124,7 @@ export default function PayoutsPage() {
                         ))}
                         {payouts.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-gray-500">
+                                <td colSpan={8} className="px-6 py-8 text-center text-sm font-medium text-gray-500">
                                     No payout requests found.
                                 </td>
                             </tr>
