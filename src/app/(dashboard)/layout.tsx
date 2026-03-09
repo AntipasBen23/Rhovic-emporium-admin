@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 const NAV_ITEMS = [
     { label: "Overview", href: "/", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg> },
@@ -18,12 +19,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem("admin_token");
-        if (!token) {
-            router.push("/login");
-        } else {
-            setLoading(false);
-        }
+        let active = true;
+        (async () => {
+            try {
+                await api.get("/admin/metrics");
+                if (active) setLoading(false);
+            } catch {
+                if (active) router.push("/login");
+            }
+        })();
+        return () => {
+            active = false;
+        };
     }, [router]);
 
     if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
@@ -61,8 +68,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="p-4 border-t border-black/5">
                     <button
-                        onClick={() => {
-                            localStorage.removeItem("admin_token");
+                        onClick={async () => {
+                            try {
+                                await api.post("/auth/logout", {});
+                            } catch {}
                             router.push("/login");
                         }}
                         className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"

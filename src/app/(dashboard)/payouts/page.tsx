@@ -26,8 +26,7 @@ export default function PayoutsPage() {
 
     const load = async () => {
         try {
-            const token = localStorage.getItem("admin_token");
-            const { items } = await api.get("/admin/vendor-payouts?limit=100", token || "");
+            const { items } = await api.get("/admin/vendor-payouts?limit=100");
             setPayouts(items || []);
         } catch (err: any) {
             setError(err.message || "Failed to load payouts");
@@ -44,8 +43,7 @@ export default function PayoutsPage() {
         try {
             setError("");
             setActionLoading(id);
-            const token = localStorage.getItem("admin_token");
-            await api.post(`/admin/vendor-payouts/${id}/mark-paid`, { reference: `PAYOUT-${Date.now()}` }, token || "");
+            await api.post(`/admin/vendor-payouts/${id}/mark-paid`, { reference: `PAYOUT-${Date.now()}` });
             await load(); // Reload list
         } catch (err: any) {
             setError(err.message || "Failed to mark payout as paid");

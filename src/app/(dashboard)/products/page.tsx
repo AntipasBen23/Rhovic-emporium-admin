@@ -22,8 +22,7 @@ export default function ProductsPage() {
 
     const load = async () => {
         try {
-            const token = localStorage.getItem("admin_token");
-            const { items } = await api.get("/admin/products?limit=100", token || "");
+            const { items } = await api.get("/admin/products?limit=100");
             setProducts(items || []);
         } catch (err: any) {
             setError(err.message || "Failed to load products");
@@ -39,13 +38,12 @@ export default function ProductsPage() {
     const handleUpdate = async (id: string) => {
         try {
             setError("");
-            const token = localStorage.getItem("admin_token");
             const rateNum = parseFloat(editRate) / 100; // convert percentage back to decimal
             if (isNaN(rateNum) || rateNum < 0 || rateNum > 1) {
                 throw new Error("Invalid commission rate (must be 0-100%)");
             }
 
-            await api.patch(`/admin/products/${id}/commission`, { rate: rateNum }, token || "");
+            await api.patch(`/admin/products/${id}/commission`, { rate: rateNum });
             setEditingId(null);
             await load();
         } catch (err: any) {

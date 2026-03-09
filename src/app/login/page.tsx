@@ -28,7 +28,6 @@ export default function AdminLoginPage() {
                 throw new Error("Unauthorized access. Admin privileges required.");
             }
 
-            localStorage.setItem("admin_token", data.access_token);
             router.push("/");
         } catch (err: any) {
             setError(err.message || "Invalid credentials or unauthorized.");

@@ -70,8 +70,7 @@ export default function OrdersPage() {
     try {
       setLoading(true);
       setError("");
-      const token = localStorage.getItem("admin_token") || "";
-      const res = await api.get("/admin/payments/pending?limit=100", token);
+      const res = await api.get("/admin/payments/pending?limit=100");
       setItems(Array.isArray(res?.items) ? res.items : []);
     } catch (err: any) {
       setError(err.message || "Failed to load pending payments");
@@ -86,8 +85,7 @@ export default function OrdersPage() {
 
   async function openDetails(orderID: string) {
     try {
-      const token = localStorage.getItem("admin_token") || "";
-      const data = await api.get(`/admin/orders/${orderID}`, token);
+      const data = await api.get(`/admin/orders/${orderID}`);
       setSelected(data);
     } catch (err: any) {
       setError(err.message || "Failed to load order details");
@@ -97,8 +95,7 @@ export default function OrdersPage() {
   async function approve(orderID: string) {
     try {
       setActionLoading(orderID + ":approve");
-      const token = localStorage.getItem("admin_token") || "";
-      await api.post(`/admin/orders/${orderID}/approve-payment`, {}, token);
+      await api.post(`/admin/orders/${orderID}/approve-payment`, {});
       await load();
       if (selected?.orderId === orderID) setSelected(null);
     } catch (err: any) {
@@ -111,8 +108,7 @@ export default function OrdersPage() {
   async function reject(orderID: string) {
     try {
       setActionLoading(orderID + ":reject");
-      const token = localStorage.getItem("admin_token") || "";
-      await api.post(`/admin/orders/${orderID}/reject-payment`, { reason: "Payment proof rejected by admin" }, token);
+      await api.post(`/admin/orders/${orderID}/reject-payment`, { reason: "Payment proof rejected by admin" });
       await load();
       if (selected?.orderId === orderID) setSelected(null);
     } catch (err: any) {
@@ -231,7 +227,7 @@ export default function OrdersPage() {
                 {selected.paymentProofs.map((proof) => (
                   <a
                     key={proof.id}
-                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://rhovic-emporium-backend-production.up.railway.app"}${proof.fileUrl}`}
+                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://rhovic-emporium-backend-production.up.railway.app"}/admin/payment-proofs/${proof.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-lg border border-black/10 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-black/5"
@@ -247,4 +243,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-

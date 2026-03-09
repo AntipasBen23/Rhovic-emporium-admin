@@ -20,8 +20,7 @@ export default function VendorsPage() {
 
     async function load() {
         try {
-            const token = localStorage.getItem("admin_token");
-            const { items } = await api.get("/admin/vendors?limit=100", token || "");
+            const { items } = await api.get("/admin/vendors?limit=100");
             setVendors(items || []);
         } catch (err: any) {
             setError(err.message || "Failed to load vendors");
@@ -38,8 +37,7 @@ export default function VendorsPage() {
         try {
             setError("");
             setActionLoading(id + ":" + action);
-            const token = localStorage.getItem("admin_token");
-            await api.patch(`/admin/vendors/${id}/${action}`, {}, token || "");
+            await api.patch(`/admin/vendors/${id}/${action}`, {});
             await load();
         } catch (err: any) {
             setError(err.message || `Failed to ${action} vendor`);

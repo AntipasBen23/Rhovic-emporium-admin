@@ -5,7 +5,7 @@ export const api = {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) headers.Authorization = `Bearer ${token}`;
 
-        const res = await fetch(`${API_URL}${endpoint}`, { headers });
+        const res = await fetch(`${API_URL}${endpoint}`, { headers, credentials: "include" });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.error || "An error occurred");
@@ -20,7 +20,8 @@ export const api = {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: "POST",
             headers,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            credentials: "include"
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
@@ -36,7 +37,8 @@ export const api = {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: "PATCH",
             headers,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            credentials: "include"
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));

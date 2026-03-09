@@ -39,8 +39,7 @@ export default function OverviewPage() {
     useEffect(() => {
         async function load() {
             try {
-                const token = localStorage.getItem("admin_token");
-                const data = await api.get("/admin/metrics", token || "");
+                const data = await api.get("/admin/metrics");
                 setMetrics(data);
             } catch (err: any) {
                 setError(err.message || "Failed to load metrics");
