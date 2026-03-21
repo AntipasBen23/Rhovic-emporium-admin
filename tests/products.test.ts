@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commissionRateLabel, formatProductPrice, parseCommissionRateInput } from "./products";
+import { commissionRateLabel, formatProductPrice, parseCommissionRateInput } from "../src/lib/products";
 
 describe("admin product helpers", () => {
   it("formats default and custom commission labels for admin product table", () => {

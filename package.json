@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --environment node --pool threads"
+    "test": "vitest run tests --environment node --pool threads"
   },
   "dependencies": {
     "next": "16.1.6",
