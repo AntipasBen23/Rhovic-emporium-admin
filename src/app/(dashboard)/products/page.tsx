@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { commissionRateLabel, formatProductPrice, parseCommissionRateInput } from "@/lib/products";
 
 type Product = {
     ID: string;
@@ -38,10 +39,7 @@ export default function ProductsPage() {
     const handleUpdate = async (id: string) => {
         try {
             setError("");
-            const rateNum = parseFloat(editRate) / 100; // convert percentage back to decimal
-            if (isNaN(rateNum) || rateNum < 0 || rateNum > 1) {
-                throw new Error("Invalid commission rate (must be 0-100%)");
-            }
+            const rateNum = parseCommissionRateInput(editRate);
 
             await api.patch(`/admin/products/${id}/commission`, { rate: rateNum });
             setEditingId(null);
@@ -49,10 +47,6 @@ export default function ProductsPage() {
         } catch (err: any) {
             setError(err.message || "Failed to update commission");
         }
-    };
-
-    const formatCurrency = (kobo: number) => {
-        return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(kobo / 100);
     };
 
     if (loading) return <div className="animate-pulse bg-gray-200 h-96 w-full flex rounded-2xl" />;
@@ -82,14 +76,14 @@ export default function ProductsPage() {
                     </thead>
                     <tbody className="divide-y divide-black/5">
                         {products.map((p) => {
-                            const currentRatePct = p.AdminCommissionRate != null ? (p.AdminCommissionRate * 100).toFixed(1) : "Default (10.0)";
+                            const currentRatePct = commissionRateLabel(p.AdminCommissionRate);
                             const isEditing = editingId === p.ID;
 
                             return (
                                 <tr key={p.ID} className="transition-colors hover:bg-black/5">
                                     <td className="px-6 py-4 font-bold text-gray-900">{p.Name}</td>
                                     <td className="px-6 py-4 font-mono text-xs text-gray-500">{p.VendorID.substring(0, 8)}...</td>
-                                    <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(p.Price)}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-900">{formatProductPrice(p.Price)}</td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${p.Status === "published" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                                             {p.Status}
@@ -111,7 +105,7 @@ export default function ProductsPage() {
                                                 <span className="text-gray-500">%</span>
                                             </div>
                                         ) : (
-                                            <span className="font-bold text-gray-900">{currentRatePct}{p.AdminCommissionRate != null && "%"}</span>
+                                            <span className="font-bold text-gray-900">{currentRatePct}</span>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
