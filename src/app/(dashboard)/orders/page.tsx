@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { buildPaymentActionKey, formatManualPaymentAmount, paymentProofDownloadURL } from "@/lib/manual-payments";
 
 type PendingPayment = {
   id: string;
@@ -51,14 +52,6 @@ type OrderDetails = {
   }>;
 };
 
-function formatMoney(amount: number, currency = "NGN") {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
 export default function OrdersPage() {
   const [items, setItems] = useState<PendingPayment[]>([]);
   const [selected, setSelected] = useState<OrderDetails | null>(null);
@@ -94,7 +87,7 @@ export default function OrdersPage() {
 
   async function approve(orderID: string) {
     try {
-      setActionLoading(orderID + ":approve");
+      setActionLoading(buildPaymentActionKey(orderID, "approve"));
       await api.post(`/admin/orders/${orderID}/approve-payment`, {});
       await load();
       if (selected?.orderId === orderID) setSelected(null);
@@ -107,7 +100,7 @@ export default function OrdersPage() {
 
   async function reject(orderID: string) {
     try {
-      setActionLoading(orderID + ":reject");
+      setActionLoading(buildPaymentActionKey(orderID, "reject"));
       await api.post(`/admin/orders/${orderID}/reject-payment`, { reason: "Payment proof rejected by admin" });
       await load();
       if (selected?.orderId === orderID) setSelected(null);
@@ -150,7 +143,7 @@ export default function OrdersPage() {
                   <td className="px-6 py-4 font-bold text-gray-900">{order.order_number}</td>
                   <td className="px-6 py-4 text-gray-700">{order.customer_email || "-"}</td>
                   <td className="px-6 py-4 font-mono text-xs text-gray-600">{order.payment_reference}</td>
-                  <td className="px-6 py-4 font-bold text-gray-900">{formatMoney(order.total_amount, order.currency)}</td>
+                  <td className="px-6 py-4 font-bold text-gray-900">{formatManualPaymentAmount(order.total_amount, order.currency)}</td>
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-bold text-yellow-800">{order.payment_status}</span>
                   </td>
@@ -174,7 +167,7 @@ export default function OrdersPage() {
                         disabled={!!actionLoading}
                         className="rounded-lg bg-green-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-900 disabled:opacity-60"
                       >
-                        {actionLoading === order.id + ":approve" ? "Approving..." : "Approve"}
+                        {actionLoading === buildPaymentActionKey(order.id, "approve") ? "Approving..." : "Approve"}
                       </button>
                     </div>
                   </td>
@@ -196,7 +189,7 @@ export default function OrdersPage() {
           </div>
 
           <div className="mt-4 text-sm text-gray-700">
-            Customer: <span className="font-bold">{selected.customer?.email || "-"}</span> · Payment status: <span className="font-bold">{selected.paymentStatus}</span> · Total: <span className="font-bold">{formatMoney(selected.totalAmount, selected.currency)}</span>
+            Customer: <span className="font-bold">{selected.customer?.email || "-"}</span> · Payment status: <span className="font-bold">{selected.paymentStatus}</span> · Total: <span className="font-bold">{formatManualPaymentAmount(selected.totalAmount, selected.currency)}</span>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -205,14 +198,14 @@ export default function OrdersPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-black text-gray-900">{vendor.vendorName || vendor.vendorId}</div>
                   <div className="text-xs text-gray-600">
-                    Subtotal: <span className="font-bold">{formatMoney(vendor.subtotal, selected.currency)}</span> · Commission: <span className="font-bold">{formatMoney(vendor.commissionAmount, selected.currency)}</span> · Net: <span className="font-bold">{formatMoney(vendor.vendorNetAmount, selected.currency)}</span>
+                    Subtotal: <span className="font-bold">{formatManualPaymentAmount(vendor.subtotal, selected.currency)}</span> · Commission: <span className="font-bold">{formatManualPaymentAmount(vendor.commissionAmount, selected.currency)}</span> · Net: <span className="font-bold">{formatManualPaymentAmount(vendor.vendorNetAmount, selected.currency)}</span>
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
                   {vendor.items?.map((item) => (
                     <div key={`${vendor.vendorOrderId}-${item.productId}-${item.name}`} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2 text-xs">
                       <span className="font-semibold text-gray-700">{item.name} × {item.quantity}</span>
-                      <span className="font-bold text-gray-900">{formatMoney(item.lineTotal, selected.currency)}</span>
+                      <span className="font-bold text-gray-900">{formatManualPaymentAmount(item.lineTotal, selected.currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -227,7 +220,7 @@ export default function OrdersPage() {
                 {selected.paymentProofs.map((proof) => (
                   <a
                     key={proof.id}
-                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://rhovic-emporium-backend-production.up.railway.app"}/admin/payment-proofs/${proof.id}`}
+                    href={paymentProofDownloadURL(proof.id, process.env.NEXT_PUBLIC_API_URL)}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-lg border border-black/10 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-black/5"
