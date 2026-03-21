@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { buildPayoutReference, canMarkPayoutPaid, formatPayoutAmount } from "@/lib/payouts";
 
 type Payout = {
     id: string;
@@ -43,17 +44,13 @@ export default function PayoutsPage() {
         try {
             setError("");
             setActionLoading(id);
-            await api.post(`/admin/vendor-payouts/${id}/mark-paid`, { reference: `PAYOUT-${Date.now()}` });
+            await api.post(`/admin/vendor-payouts/${id}/mark-paid`, { reference: buildPayoutReference(Date.now()) });
             await load(); // Reload list
         } catch (err: any) {
             setError(err.message || "Failed to mark payout as paid");
         } finally {
             setActionLoading(null);
         }
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
     };
 
     if (loading) return <div className="animate-pulse bg-gray-200 h-96 w-full flex rounded-2xl" />;
@@ -88,9 +85,9 @@ export default function PayoutsPage() {
                             <tr key={p.id} className="transition-colors hover:bg-black/5">
                                 <td className="px-6 py-4 font-mono text-xs text-gray-500">{p.id.substring(0, 12)}...</td>
                                 <td className="px-6 py-4 text-xs text-gray-700">{p.vendor_name || p.vendor_id}</td>
-                                <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(p.gross_amount)}</td>
-                                <td className="px-6 py-4 font-bold text-gray-700">{formatCurrency(p.commission_amount)}</td>
-                                <td className="px-6 py-4 font-black tracking-tight text-gray-900">{formatCurrency(p.net_amount)}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900">{formatPayoutAmount(p.gross_amount)}</td>
+                                <td className="px-6 py-4 font-bold text-gray-700">{formatPayoutAmount(p.commission_amount)}</td>
+                                <td className="px-6 py-4 font-black tracking-tight text-gray-900">{formatPayoutAmount(p.net_amount)}</td>
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${p.status === "paid" ? "bg-green-100 text-green-800" :
                                             p.status === "queued" ? "bg-yellow-100 text-yellow-800" :
@@ -103,7 +100,7 @@ export default function PayoutsPage() {
                                     {new Date(p.created_at).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    {p.status !== "paid" && (
+                                    {canMarkPayoutPaid(p.status) && (
                                         <div className="flex justify-end gap-2">
                                             {actionLoading === p.id ? (
                                                 <span className="text-xs font-bold text-gray-500">Processing...</span>
@@ -114,7 +111,7 @@ export default function PayoutsPage() {
                                             )}
                                         </div>
                                     )}
-                                    {p.status === "paid" && (
+                                    {!canMarkPayoutPaid(p.status) && (
                                         <span className="text-xs font-bold text-gray-400">No actions available</span>
                                     )}
                                 </td>
