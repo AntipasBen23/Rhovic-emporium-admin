@@ -46,6 +46,29 @@ export default function VendorsPage() {
         }
     }
 
+    async function handleSessionAction(id: string, action: "logout" | "delete") {
+        const confirmDelete =
+            action !== "delete" ||
+            window.confirm("Delete this vendor? Their sessions will be revoked and their products will be removed from live listings.");
+
+        if (!confirmDelete) return;
+
+        try {
+            setError("");
+            setActionLoading(id + ":" + action);
+            if (action === "logout") {
+                await api.post(`/admin/vendors/${id}/logout`, {});
+            } else {
+                await api.delete(`/admin/vendors/${id}`);
+            }
+            await load();
+        } catch (err: any) {
+            setError(err.message || `Failed to ${action} vendor`);
+        } finally {
+            setActionLoading(null);
+        }
+    }
+
     if (loading) return <div className="animate-pulse bg-gray-200 h-96 w-full flex rounded-2xl" />;
 
     return (
@@ -89,30 +112,42 @@ export default function VendorsPage() {
                                     {new Date(v.CreatedAt).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    {v.Status === "pending" ? (
-                                        <div className="flex justify-end gap-2">
-                                            {actionLoading === `${v.ID}:approve` || actionLoading === `${v.ID}:reject` ? (
-                                                <span className="text-xs font-bold text-gray-500">Processing...</span>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleAction(v.ID, "reject")}
-                                                        className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200"
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleAction(v.ID, "approve")}
-                                                        className="text-xs font-bold text-white bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg"
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs font-bold text-gray-400">No actions</span>
-                                    )}
+                                    <div className="flex justify-end gap-2 flex-wrap">
+                                        {actionLoading?.startsWith(`${v.ID}:`) ? (
+                                            <span className="text-xs font-bold text-gray-500">Processing...</span>
+                                        ) : (
+                                            <>
+                                                {v.Status === "pending" && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleAction(v.ID, "reject")}
+                                                            className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleAction(v.ID, "approve")}
+                                                            className="text-xs font-bold text-white bg-green-800 hover:bg-green-900 px-3 py-1.5 rounded-lg"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    onClick={() => handleSessionAction(v.ID, "logout")}
+                                                    className="text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200"
+                                                >
+                                                    Log out
+                                                </button>
+                                                <button
+                                                    onClick={() => handleSessionAction(v.ID, "delete")}
+                                                    className="text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
