@@ -13,6 +13,19 @@ type Metrics = {
     total_commission: number;
     pending_payout_amount: number;
     failed_payments: number;
+    today_page_views: number;
+    today_unique_visitors: number;
+    daily_visits: Array<{
+        day: string;
+        page_views: number;
+        unique_visitors: number;
+    }>;
+    top_locations: Array<{
+        country: string;
+        region: string;
+        state: string;
+        page_views: number;
+    }>;
 };
 
 function MetricCard({ title, value, label }: { title: string; value: string | number; label?: string }) {
@@ -69,6 +82,62 @@ export default function OverviewPage() {
                 <MetricCard title="Registered Vendors" value={metrics.total_vendors} label={`(${metrics.pending_vendors} pending)`} />
                 <MetricCard title="Listed Products" value={metrics.total_products} label={`(${metrics.published_products} live)`} />
                 <MetricCard title="Pending Payouts" value={formatCurrency(metrics.pending_payout_amount)} />
+                <MetricCard title="Today's Page Views" value={metrics.today_page_views} label="views" />
+                <MetricCard title="Today's Unique Visitors" value={metrics.today_unique_visitors} label="visitors" />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
+                <div className="glass-panel p-6 rounded-2xl border border-black/5 shadow-premium">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 className="text-lg font-black font-heading text-gray-950">Daily Visitor Trend</h2>
+                            <p className="text-sm text-gray-500 font-medium">Page views and unique visitors for the last 7 days.</p>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        {metrics.daily_visits?.length ? metrics.daily_visits.map((item) => {
+                            const maxViews = Math.max(...metrics.daily_visits.map((entry) => entry.page_views), 1);
+                            const width = `${Math.max((item.page_views / maxViews) * 100, item.page_views > 0 ? 8 : 0)}%`;
+                            return (
+                                <div key={item.day} className="space-y-2">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="text-sm font-bold text-gray-700">{item.day}</div>
+                                        <div className="text-sm text-gray-500 font-semibold">
+                                            {item.page_views} views • {item.unique_visitors} visitors
+                                        </div>
+                                    </div>
+                                    <div className="h-3 rounded-full bg-black/5 overflow-hidden">
+                                        <div className="h-full rounded-full bg-emerald-600" style={{ width }} />
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <p className="text-sm text-gray-500 font-medium">No visit records yet.</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="glass-panel p-6 rounded-2xl border border-black/5 shadow-premium">
+                    <div className="mb-5">
+                        <h2 className="text-lg font-black font-heading text-gray-950">Visitor Location Breakdown</h2>
+                        <p className="text-sm text-gray-500 font-medium">Top countries, regions, and states generating visits today.</p>
+                    </div>
+                    <div className="space-y-3">
+                        {metrics.top_locations?.length ? metrics.top_locations.map((item, index) => (
+                            <div key={`${item.country}-${item.region}-${item.state}-${index}`} className="rounded-xl border border-black/5 bg-black/[0.03] px-4 py-3">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <div className="font-bold text-gray-950">{item.country}</div>
+                                        <div className="text-sm text-gray-500 font-medium">{item.region} • {item.state}</div>
+                                    </div>
+                                    <div className="text-sm font-black text-emerald-700">{item.page_views} views</div>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-sm text-gray-500 font-medium">No geo visit data yet.</p>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="rounded-2xl bg-black/5 p-6 border border-black/10">
