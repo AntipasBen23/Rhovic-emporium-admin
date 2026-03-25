@@ -15,6 +15,9 @@ type Metrics = {
     failed_payments: number;
     today_page_views: number;
     today_unique_visitors: number;
+    recent_security_events: number;
+    recent_login_failures: number;
+    recent_lockouts: number;
     daily_visits: Array<{
         day: string;
         page_views: number;
@@ -25,6 +28,12 @@ type Metrics = {
         region: string;
         state: string;
         page_views: number;
+    }>;
+    recent_security: Array<{
+        event_type: string;
+        principal: string;
+        ip_address: string;
+        created_at: string;
     }>;
 };
 
@@ -84,6 +93,9 @@ export default function OverviewPage() {
                 <MetricCard title="Pending Payouts" value={formatCurrency(metrics.pending_payout_amount)} />
                 <MetricCard title="Today's Page Views" value={metrics.today_page_views} label="views" />
                 <MetricCard title="Today's Unique Visitors" value={metrics.today_unique_visitors} label="visitors" />
+                <MetricCard title="Security Events (24h)" value={metrics.recent_security_events} label="events" />
+                <MetricCard title="Failed Logins (24h)" value={metrics.recent_login_failures} label="attempts" />
+                <MetricCard title="Login Lockouts (24h)" value={metrics.recent_lockouts} label="alerts" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
@@ -142,7 +154,7 @@ export default function OverviewPage() {
 
             <div className="rounded-2xl bg-black/5 p-6 border border-black/10">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-gray-950 mb-4">System Alerts</h2>
-                {metrics.pending_vendors > 0 || metrics.failed_payments > 0 ? (
+                {metrics.pending_vendors > 0 || metrics.failed_payments > 0 || metrics.recent_lockouts > 0 || metrics.recent_login_failures > 0 ? (
                     <ul className="space-y-3">
                         {metrics.pending_vendors > 0 && (
                             <li className="flex items-center gap-3 text-sm font-medium text-yellow-700 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
@@ -156,10 +168,46 @@ export default function OverviewPage() {
                                 Warning: {metrics.failed_payments} failed payment attempts recorded.
                             </li>
                         )}
+                        {metrics.recent_login_failures > 0 && (
+                            <li className="flex items-center gap-3 text-sm font-medium text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                <span className="flex h-2 w-2 rounded-full bg-orange-500" />
+                                {metrics.recent_login_failures} failed login attempts recorded in the last 24 hours.
+                            </li>
+                        )}
+                        {metrics.recent_lockouts > 0 && (
+                            <li className="flex items-center gap-3 text-sm font-medium text-red-700 bg-red-50 p-3 rounded-lg border border-red-200">
+                                <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                                {metrics.recent_lockouts} temporary login lockouts were triggered in the last 24 hours.
+                            </li>
+                        )}
                     </ul>
                 ) : (
                     <p className="text-sm text-gray-500 font-medium">No critical alerts at this time. All systems green.</p>
                 )}
+            </div>
+
+            <div className="glass-panel p-6 rounded-2xl border border-black/5 shadow-premium">
+                <div className="mb-5">
+                    <h2 className="text-lg font-black font-heading text-gray-950">Recent Security Activity</h2>
+                    <p className="text-sm text-gray-500 font-medium">Newest security events captured by the auth protection layer.</p>
+                </div>
+                <div className="space-y-3">
+                    {metrics.recent_security?.length ? metrics.recent_security.map((item, index) => (
+                        <div key={`${item.event_type}-${item.created_at}-${index}`} className="rounded-xl border border-black/5 bg-black/[0.03] px-4 py-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <div className="font-bold text-gray-950">{item.event_type}</div>
+                                    <div className="text-sm text-gray-500 font-medium">{item.principal} • {item.ip_address}</div>
+                                </div>
+                                <div className="text-sm font-semibold text-gray-500">
+                                    {new Date(item.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="text-sm text-gray-500 font-medium">No recent security events recorded.</p>
+                    )}
+                </div>
             </div>
         </>
     );
