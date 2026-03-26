@@ -70,7 +70,7 @@ export default function SupportAdminPage() {
       params.set("limit", "100");
       if (status) params.set("status", status);
       if (search.trim()) params.set("search", search.trim());
-      const res = await api.get<{ items: SupportThreadItem[] }>(`/admin/support/threads?${params.toString()}`);
+      const res = (await api.get(`/admin/support/threads?${params.toString()}`)) as { items: SupportThreadItem[] };
       const items = Array.isArray(res?.items) ? res.items : [];
       setThreads(items);
       const nextID = preferredID || (items.some((thread) => thread.id === selectedID) ? selectedID : items[0]?.id || "");
@@ -89,7 +89,7 @@ export default function SupportAdminPage() {
 
   async function loadThread(threadID: string) {
     try {
-      const detail = await api.get<SupportThreadDetail>(`/admin/support/threads/${threadID}`);
+      const detail = (await api.get(`/admin/support/threads/${threadID}`)) as SupportThreadDetail;
       setSelected(detail);
       setSelectedID(threadID);
     } catch (err: any) {
@@ -123,7 +123,7 @@ export default function SupportAdminPage() {
     try {
       setActionLoading(true);
       setError("");
-      const detail = await api.post<SupportThreadDetail>(`/admin/support/threads/${selectedID}/messages`, { message: reply.trim() });
+      const detail = (await api.post(`/admin/support/threads/${selectedID}/messages`, { message: reply.trim() })) as SupportThreadDetail;
       setReply("");
       setSelected(detail);
       await loadThreads(selectedID);
