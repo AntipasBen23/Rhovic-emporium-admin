@@ -28,6 +28,7 @@ export default function AdminLoginPage() {
                 throw new Error("Unauthorized access. Admin privileges required.");
             }
 
+            sessionStorage.setItem("rhovic-admin-session", "1");
             router.push("/");
         } catch (err: any) {
             setError(err.message || "Invalid credentials or unauthorized.");

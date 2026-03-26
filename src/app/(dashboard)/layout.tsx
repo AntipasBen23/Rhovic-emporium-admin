@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import SessionManager from "@/components/SessionManager";
 
 const NAV_ITEMS = [
     { label: "Overview", href: "/", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg> },
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         (async () => {
             try {
                 await api.get("/admin/metrics");
+                sessionStorage.setItem("rhovic-admin-session", "1");
                 if (active) setLoading(false);
             } catch {
                 if (active) router.push("/login");
@@ -40,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="flex min-h-screen bg-gray-50">
+            <SessionManager />
             {/* Sidebar */}
             <aside className="fixed inset-y-0 left-0 w-64 glass-panel border-r border-black/5 flex flex-col z-20">
                 <div className="p-6 border-b border-black/5">
@@ -75,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             try {
                                 await api.post("/auth/logout", {});
                             } catch {}
+                            sessionStorage.removeItem("rhovic-admin-session");
                             router.push("/login");
                         }}
                         className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
