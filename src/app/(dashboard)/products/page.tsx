@@ -20,6 +20,7 @@ export default function ProductsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editRate, setEditRate] = useState<string>("");
     const [error, setError] = useState("");
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const load = async () => {
         try {
@@ -46,6 +47,28 @@ export default function ProductsPage() {
             await load();
         } catch (err: any) {
             setError(err.message || "Failed to update commission");
+        }
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        const ok = typeof window === "undefined"
+            ? true
+            : window.confirm(`Delete "${name}" from the marketplace? This removes the product listing for customers and vendors.`);
+        if (!ok) return;
+
+        try {
+            setDeletingId(id);
+            setError("");
+            await api.delete(`/admin/products/${id}`);
+            if (editingId === id) {
+                setEditingId(null);
+                setEditRate("");
+            }
+            await load();
+        } catch (err: any) {
+            setError(err.message || "Failed to delete product");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -115,15 +138,24 @@ export default function ProductsPage() {
                                                 <button onClick={() => handleUpdate(p.ID)} className="rounded-md bg-green-800 px-3 py-1 text-xs font-bold text-white hover:bg-green-900">Save</button>
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setEditingId(p.ID);
-                                                    setEditRate(p.AdminCommissionRate != null ? (p.AdminCommissionRate * 100).toString() : "10");
-                                                }}
-                                                className="text-xs font-bold text-green-800 hover:text-green-900 underline underline-offset-2"
-                                            >
-                                                Edit Rate
-                                            </button>
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingId(p.ID);
+                                                        setEditRate(p.AdminCommissionRate != null ? (p.AdminCommissionRate * 100).toString() : "10");
+                                                    }}
+                                                    className="text-xs font-bold text-green-800 hover:text-green-900 underline underline-offset-2"
+                                                >
+                                                    Edit Rate
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(p.ID, p.Name)}
+                                                    disabled={deletingId === p.ID}
+                                                    className="text-xs font-bold text-red-600 hover:text-red-700 underline underline-offset-2 disabled:opacity-60"
+                                                >
+                                                    {deletingId === p.ID ? "Deleting..." : "Delete"}
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
