@@ -2,11 +2,23 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080
 
 let refreshPromise: Promise<boolean> | null = null;
 
+function getCSRFCookie() {
+    if (typeof document === "undefined") return "";
+    const cookie = document.cookie
+        .split("; ")
+        .find((part) => part.startsWith("rhovic_csrf_token="));
+    return cookie ? decodeURIComponent(cookie.slice("rhovic_csrf_token=".length)) : "";
+}
+
 async function refreshSession() {
     if (!refreshPromise) {
+        const csrf = getCSRFCookie();
         refreshPromise = fetch(`${API_URL}/auth/refresh`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+            },
             credentials: "include",
             body: JSON.stringify({}),
         })
@@ -26,8 +38,17 @@ function clearAdminSession() {
 }
 
 async function requestWithRefresh(endpoint: string, options: RequestInit = {}, retried = false) {
+    const headers = new Headers(options.headers);
+    const method = (options.method || "GET").toUpperCase();
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
+        const csrf = getCSRFCookie();
+        if (csrf && !headers.has("X-CSRF-Token")) {
+            headers.set("X-CSRF-Token", csrf);
+        }
+    }
     const res = await fetch(`${API_URL}${endpoint}`, {
         ...options,
+        headers,
         credentials: "include",
     });
 
