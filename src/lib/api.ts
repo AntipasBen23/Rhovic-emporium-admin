@@ -54,7 +54,7 @@ function clearAdminSession() {
     window.dispatchEvent(new Event("rhovic-admin-logout"));
 }
 
-async function requestWithRefresh(endpoint: string, options: RequestInit = {}, retried = false) {
+async function requestWithRefresh(endpoint: string, options: RequestInit = {}, retried = false, csrfRetried = false) {
     const method = (options.method || "GET").toUpperCase();
     if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
         await ensureCSRFToken();
@@ -82,9 +82,23 @@ async function requestWithRefresh(endpoint: string, options: RequestInit = {}, r
     if (canRefresh) {
         const refreshed = await refreshSession();
         if (refreshed) {
-            return requestWithRefresh(endpoint, options, true);
+            return requestWithRefresh(endpoint, options, true, csrfRetried);
         }
         clearAdminSession();
+    }
+
+    const canRetryCSRF =
+        !csrfRetried &&
+        res.status === 403 &&
+        ["POST", "PATCH", "PUT", "DELETE"].includes(method) &&
+        !endpoint.startsWith("/auth/login") &&
+        !endpoint.startsWith("/auth/refresh") &&
+        !endpoint.startsWith("/auth/logout");
+
+    if (canRetryCSRF) {
+        csrfBootstrapPromise = null;
+        await ensureCSRFToken();
+        return requestWithRefresh(endpoint, options, retried, true);
     }
 
     return res;
