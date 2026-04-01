@@ -54,6 +54,11 @@ function clearAdminSession() {
     window.dispatchEvent(new Event("rhovic-admin-logout"));
 }
 
+function humanizeError(error: string, details: string) {
+    if (details) return `${error}: ${details}`;
+    return error || "An error occurred";
+}
+
 async function requestWithRefresh(endpoint: string, options: RequestInit = {}, retried = false, csrfRetried = false) {
     const method = (options.method || "GET").toUpperCase();
     if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
@@ -112,7 +117,7 @@ export const api = {
         const res = await requestWithRefresh(endpoint, { headers });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "An error occurred");
+            throw new Error(humanizeError(err.error || "", err.details || ""));
         }
         return res.json();
     },
@@ -128,7 +133,7 @@ export const api = {
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "An error occurred");
+            throw new Error(humanizeError(err.error || "", err.details || ""));
         }
         return res.json();
     },
@@ -144,7 +149,7 @@ export const api = {
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "An error occurred");
+            throw new Error(humanizeError(err.error || "", err.details || ""));
         }
         return res.json();
     },
@@ -159,7 +164,7 @@ export const api = {
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "An error occurred");
+            throw new Error(humanizeError(err.error || "", err.details || ""));
         }
         return res.status === 204 ? null : res.json();
     }

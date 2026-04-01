@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const GREEN = "rgb(18,77,52)";
 
@@ -10,6 +11,7 @@ export default function AdminLoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [captchaToken, setCaptchaToken] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -19,7 +21,7 @@ export default function AdminLoginPage() {
         setLoading(true);
 
         try {
-            const data: any = await api.post("/auth/login", { email, password });
+            const data: any = await api.post("/auth/login", { email, password, captcha_token: captchaToken });
 
             // The backend returns only { access_token, refresh_token }. Decode role from the JWT.
             const payload = JSON.parse(atob(data.access_token.split(".")[1]));
@@ -91,6 +93,8 @@ export default function AdminLoginPage() {
                             placeholder="••••••••"
                         />
                     </div>
+
+                    <TurnstileWidget onToken={setCaptchaToken} />
 
                     <div className="pt-2">
                         <button
